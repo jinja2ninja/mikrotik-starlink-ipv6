@@ -1,6 +1,7 @@
 
 # mikrotik-starlink-ipv6
 A quick and easy IPv6 configuration for Mikrotik and Starlink
+Adapted to work with RouterOS 6.49.13
 
 The overall goal of this is to set a couple variables, execute the script and have working IPv6 from Starlink on your MikroTik router and the rest of your network.
 
@@ -12,7 +13,7 @@ Key features:
 
 ## Prerequisites
 1. Starlink Internet
-1. MikroTik router with RouterOS 7.7+
+1. MikroTik router with RouterOS 6.49+
 1. Blank IPv6 sections:
     - DHCP Client
     - DHCP Server
@@ -30,7 +31,7 @@ The following commands can be executing using winbox terminal or ssh.
 Two variables that must be set correctly for this to be successful. For me, I have Starlink plugged in to `ether1` on my router. Additionally, I have my LAN interface set to my main `bridge`. Compare these values to your Mikrotik configuration and update as needed.
 
 ```sh
-:global StarlinkInterface "ether1";
+:global StarlinkInterface "ether2";
 :global LANInterface "bridge"
 ```
 
@@ -40,10 +41,10 @@ The order here is important, *do not change it*. After activating the DHCP clien
 
 ```sh
 /ipv6 settings
-set accept-redirects=no accept-router-advertisements=yes disable-ipv6=no forward=yes max-neighbor-entries=8192
+set accept-redirects=no accept-router-advertisements=yes forward=yes max-neighbor-entries=1892
 
 /ipv6 dhcp-client
-add add-default-route=no dhcp-options="" dhcp-options="" disabled=no interface="$StarlinkInterface" pool-name=starlink-v6 pool-prefix-length=64 prefix-hint=::/0 rapid-commit=no request=prefix use-interface-duid=yes use-peer-dns=yes
+add add-default-route=no dhcp-options="" disabled=no interface="$StarlinkInterface" pool-name=starlink-v6 pool-prefix-length=64 prefix-hint=::/0 rapid-commit=no request=prefix use-peer-dns=yes
 
 :delay 5000ms
 
@@ -60,7 +61,7 @@ add address=100::/64 comment="defconf: discard only " disabled=no dynamic=no lis
 add address=2001:db8::/32 comment="defconf: documentation" disabled=no dynamic=no list=bad_ipv6
 add address=2001:10::/28 comment="defconf: ORCHID" disabled=no dynamic=no list=bad_ipv6
 add address=fe80::/10 disabled=no dynamic=no list=prefix_delegation
-add address=[/ipv6/dhcp-client get value-name=dhcp-server-v6 number=$StarlinkInterface] disabled=no dynamic=no list=prefix_delegation comment="dhcp6 client server value"
+add address=[/ipv6 dhcp-client get value-name=dhcp-server-v6 number=$StarlinkInterface] disabled=no dynamic=no list=prefix_delegation comment="dhcp6 client server value"
 
 /ipv6 firewall filter
 add action=accept chain=input dst-port=5678 protocol=udp
@@ -80,7 +81,7 @@ add action=accept chain=forward comment="defconf: accept HIP" protocol=139
 add action=drop chain=forward comment="defconf: drop everything else not coming from LAN" in-interface="!$LANInterface"
 
 /ipv6 nd
-set [ find default=yes ] advertise-dns=no advertise-mac-address=yes disabled=no dns="" hop-limit=64 interface=all managed-address-configuration=yes mtu=1280 other-configuration=yes ra-delay=3s ra-interval=3m20s-8m20s ra-lifetime=30m ra-preference=medium
+set [ find default=yes ] advertise-dns=no advertise-mac-address=yes disabled=no hop-limit=64 interface=all managed-address-configuration=yes mtu=1280 other-configuration=yes ra-delay=3s ra-interval=3m20s-8m20s ra-lifetime=30m 
 
 /ipv6 nd prefix default
 set autonomous=yes preferred-lifetime=10m valid-lifetime=15m
